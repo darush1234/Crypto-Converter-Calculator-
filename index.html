@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ماشین‌حساب کریپتو - CoinGecko</title>
+<style>
+:root {
+    --bg: #0a0f1e; --card: #151e32; --card2: #1a2542;
+    --accent: #f59e0b; --accent2: #fbbf24;
+    --green: #10b981; --red: #ef4444;
+    --cyan: #06b6d4; --text: #f1f5f9;
+    --muted: #94a3b8; --border: #2d3a52;
+    --shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Tahoma','Segoe UI',sans-serif; }
+body { background:linear-gradient(180deg,var(--bg) 0%,#0f172a 100%); color:var(--text); padding:20px; min-height:100vh; line-height:1.7; }
+.container { max-width:1200px; margin:0 auto; }
+
+.header { text-align:center; margin-bottom:24px; padding:28px; background:linear-gradient(135deg,var(--card) 0%,var(--card2) 100%); border-radius:22px; border:1px solid var(--border); box-shadow:var(--shadow); }
+.header h1 { font-size:1.9rem; background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
+.header p { color:var(--muted); font-size:0.92rem; }
+
+.status-bar { display:flex; justify-content:space-between; align-items:center; padding:14px 22px; background:var(--card); border-radius:14px; margin-bottom:20px; border:1px solid var(--border); flex-wrap:wrap; gap:12px; font-size:0.85rem; }
+.status-item { display:flex; align-items:center; gap:8px; }
+.status-dot { width:10px; height:10px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+.status-dot.offline { background:var(--accent); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Rate Input */
+.rate-input-box {
+    background: linear-gradient(135deg, rgba(6,182,212,.12), rgba(139,92,246,.06));
+    border: 2px solid var(--cyan);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.rate-input-box h3 { color: var(--cyan); font-size: 0.95rem; margin-bottom: 12px; }
+.rate-input-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rate-input-row input {
+    flex: 1; min-width: 200px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    outline: none;
+}
+.rate-input-row input:focus { border-color: var(--cyan); }
+.rate-input-row button {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--cyan), #0891b2);
+    color: #fff;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.tabs { display:flex; gap:8px; margin-bottom:24px; background:var(--card); padding:6px; border-radius:14px; border:1px solid var(--border); flex-wrap:wrap; }
+.tab { flex:1; min-width:130px; padding:12px 18px; border-radius:10px; border:none; background:transparent; color:var(--muted); cursor:pointer; font-family:inherit; font-size:0.88rem; font-weight:bold; transition:.3s; }
+.tab.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; }
+
+.card { background:var(--card); border-radius:20px; padding:24px; border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:20px; }
+.card-title { color:var(--accent); font-size:1rem; font-weight:bold; margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+
+.tab-content { display:none; }
+.tab-content.active { display:block; animation:fadeIn .3s; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+.crypto-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+.crypto-card { background:var(--bg); border-radius:14px; padding:16px; border:2px solid var(--border); cursor:pointer; transition:.3s; text-align:center; }
+.crypto-card:hover { border-color:var(--accent); transform:translateY(-3px); }
+.crypto-card.selected { border-color:var(--accent); background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(139,92,246,.05)); }
+.crypto-card .c-symbol { font-size:1.05rem; font-weight:bold; color:var(--accent); margin-bottom:4px; }
+.crypto-card .c-name { font-size:0.72rem; color:var(--muted); margin-bottom:8px; }
+.crypto-card .c-price { font-size:0.82rem; font-weight:bold; font-family:'Consolas',monospace; direction:ltr; }
+.crypto-card .c-change { font-size:0.7rem; margin-top:4px; font-weight:bold; }
+
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; color:var(--muted); font-size:0.83rem; margin-bottom:8px; font-weight:bold; }
+.input-wrap { position:relative; display:flex; align-items:center; }
+.input-wrap input { width:100%; padding:14px 18px; border-radius:12px; background:var(--bg); border:2px solid var(--border); color:var(--text); font-family:inherit; font-size:0.95rem; outline:none; transition:.3s; font-weight:bold; padding-left:70px; }
+.input-wrap input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,158,11,.15); }
+.input-wrap .unit { position:absolute; left:16px; color:var(--muted); font-size:0.82rem; font-weight:bold; pointer-events:none; }
+
+.btn { padding:12px 24px; border-radius:12px; border:none; cursor:pointer; font-family:inherit; font-size:0.9rem; font-weight:bold; transition:.3s; }
+.btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; width:100%; padding:15px; }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(245,158,11,.3); }
+.btn-secondary { background:var(--bg); color:var(--text); border:1px solid var(--border); }
+.btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+
+.result-box { background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(139,92,246,.05)); border:2px solid var(--accent); border-radius:16px; padding:22px; margin-top:18px; text-align:center; }
+.result-box .result-label { color:var(--muted); font-size:0.83rem; margin-bottom:8px; }
+.result-box .result-value { font-size:1.9rem; font-weight:bold; color:var(--accent); font-family:'Consolas',monospace; direction:ltr; }
+.result-box .result-sub { color:var(--muted); font-size:0.83rem; margin-top:10px; }
+
+.result-rows { margin-top:18px; }
+.result-row { display:flex; justify-content:space-between; padding:11px 15px; border-radius:10px; background:var(--bg); margin-bottom:7px; font-size:0.88rem; }
+.result-row .lbl { color:var(--muted); }
+.result-row .val { font-weight:bold; font-family:'Consolas',monospace; }
+.val-green { color:var(--green); } .val-red { color:var(--red); }
+.val-cyan { color:var(--cyan); } .val-accent { color:var(--accent); }
+
+.rate-display { background:var(--bg); border-radius:14px; padding:16px 20px; border:1px solid var(--border); margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+.rate-display .rate-label { color:var(--muted); font-size:0.83rem; }
+.rate-display .rate-value { color:var(--cyan); font-size:1.05rem; font-weight:bold; font-family:'Consolas',monospace; direction:ltr; }
+
+.info-box { background:rgba(6,182,212,.08); border-right:4px solid var(--cyan); padding:14px 18px; border-radius:10px; font-size:0.83rem; line-height:1.9; margin-top:14px; }
+.info-box strong { color:var(--cyan); }
+.warning-box { background:rgba(239,68,68,.08); border-right:4px solid var(--red); padding:14px 18px; border-radius:10px; font-size:0.83rem; line-height:1.9; margin-top:14px; color:#fca5a5; }
+
+/* ============================================================
+   ✨ بخش صرافی‌های پیشنهادی (زیرمجموعه / Referral)
+   ============================================================ */
+.referral-section {
+    background: linear-gradient(135deg, var(--card) 0%, var(--card2) 100%);
+    border-radius: 22px;
+    padding: 26px 22px 22px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    margin: 26px 0 20px;
+    position: relative;
+    overflow: hidden;
+}
+.referral-section::before {
+    content:'';
+    position:absolute;
+    top:-80px; right:-80px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(245,158,11,.18), transparent 65%);
+    pointer-events:none;
+}
+.referral-section::after {
+    content:'';
+    position:absolute;
+    bottom:-90px; left:-90px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(6,182,212,.16), transparent 65%);
+    pointer-events:none;
+}
+.referral-head { text-align:center; margin-bottom:20px; position:relative; z-index:1; }
+.referral-head h2 {
+    font-size:1.25rem;
+    background:linear-gradient(90deg, var(--accent), var(--accent2), var(--cyan), var(--accent));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    margin-bottom:6px;
+}
+.referral-head p { color:var(--muted); font-size:0.82rem; }
+
+.referral-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+    gap:16px;
+    position:relative;
+    z-index:1;
+}
+.ref-card {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    padding:22px 18px 18px;
+    border-radius:18px;
+    background:var(--bg);
+    border:2px solid var(--border);
+    text-decoration:none;
+    color:var(--text);
+    transition:.35s cubic-bezier(.22,.9,.3,1);
+    position:relative;
+    overflow:hidden;
+    isolation:isolate;
+}
+.ref-card::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(135deg, var(--ref-c1, rgba(245,158,11,.14)), transparent 70%);
+    opacity:0;
+    transition:.35s;
+    z-index:-1;
+}
+.ref-card:hover {
+    transform:translateY(-6px);
+    border-color:var(--ref-c2, var(--accent));
+    box-shadow:0 16px 40px rgba(0,0,0,.45), 0 0 0 1px var(--ref-c2, var(--accent)) inset;
+}
+.ref-card:hover::after { opacity:1; }
+
+.ref-badge {
+    position:absolute;
+    top:10px; left:10px;
+    font-size:0.65rem;
+    font-weight:bold;
+    padding:3px 9px;
+    border-radius:20px;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#000;
+    letter-spacing:.3px;
+}
+.ref-logo {
+    width:64px; height:64px;
+    border-radius:18px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.7rem;
+    font-weight:bold;
+    margin-bottom:12px;
+    color:#fff;
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
+    position:relative;
+}
+.ref-name { font-size:1.05rem; font-weight:bold; margin-bottom:4px; }
+.ref-desc { color:var(--muted); font-size:0.76rem; line-height:1.7; margin-bottom:14px; min-height:38px; }
+.ref-cta {
+    display:inline-block;
+    padding:9px 22px;
+    border-radius:10px;
+    font-size:0.82rem;
+    font-weight:bold;
+    color:#fff;
+    background:linear-gradient(135deg, var(--ref-c2, var(--accent)), var(--ref-c1b, var(--accent2)));
+    transition:.3s;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.ref-card:hover .ref-cta { transform:scale(1.05); }
+
+.ref-rstn   { --ref-c2:#8b5cf6; --ref-c1:rgba(139,92,246,.18); --ref-c1b:#a78bfa; }
+.ref-rstn .ref-logo { background:linear-gradient(135deg,#8b5cf6,#06b6d4); }
+.ref-nobitex{ --ref-c2:#0ea5e9; --ref-c1:rgba(14,165,233,.18); --ref-c1b:#38bdf8; }
+.ref-nobitex .ref-logo { background:linear-gradient(135deg,#0ea5e9,#0369a1); }
+.ref-wallex { --ref-c2:#10b981; --ref-c1:rgba(16,185,129,.18); --ref-c1b:#34d399; }
+.ref-wallex .ref-logo { background:linear-gradient(135deg,#10b981,#047857); }
+
+/* بنر نوبیتکس */
+.ref-banner-wrap {
+    width:100%;
+    border-radius:14px;
+    overflow:hidden;
+    margin-bottom:14px;
+    border:1px solid var(--border);
+    background:#000;
+}
+.ref-banner-wrap img {
+    display:block;
+    width:100%;
+    height:auto;
+    max-height:110px;
+    object-fit:cover;
+}
+
+/* ============================================================
+   👁️ شمارنده بازدیدکنندگان (مستطیل کوچک پایین صفحه)
+   ============================================================ */
+.visitor-wrap { display:flex; justify-content:center; margin: 6px 0 24px; }
+.visitor-box {
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 20px;
+    border-radius:12px;
+    background:linear-gradient(135deg, rgba(6,182,212,.12), rgba(139,92,246,.08));
+    border:1px solid var(--cyan);
+    box-shadow:0 6px 20px rgba(0,0,0,.3), 0 0 20px rgba(6,182,212,.08);
+    font-size:0.82rem;
+    color:var(--muted);
+    font-weight:bold;
+    transition:.3s;
+}
+.visitor-box:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(0,0,0,.4), 0 0 24px rgba(6,182,212,.18); }
+.visitor-box .v-icon { font-size:1.05rem; }
+.visitor-box strong {
+    color:var(--cyan);
+    font-family:'Consolas',monospace;
+    font-size:1.05rem;
+    direction:ltr;
+    text-shadow:0 0 12px rgba(6,182,212,.45);
+}
+.visitor-box .v-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 10px var(--green);
+    animation:pulse 2s infinite;
+}
+
+@media(max-width:768px) { .form-row { grid-template-columns:1fr; } .header h1 { font-size:1.4rem; } .result-box .result-value { font-size:1.5rem; } }
+@media(max-width:480px) { body{padding:10px} .card{padding:18px} .crypto-grid{grid-template-columns:1fr 1fr} .referral-grid{grid-template-columns:1fr} }
+
+::-webkit-scrollbar { width:7px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>🧮 ماشین‌حساب کریپتو به تومان</h1>
+        <p>قیمت از CoinGecko (دلاری) + نرخ تتر دستی</p>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">در حال اتصال به CoinGecko...</span>
+        </div>
+        <div class="status-item">
+            <span>💱 نرخ تتر: <strong id="tetherRate">128,000</strong> تومان</span>
+        </div>
+        <div class="status-item">
+            <span>🕐 <strong id="lastUpdate">-</strong></span>
+        </div>
+    </div>
+
+    <!-- Rate Input -->
+    <div class="rate-input-box">
+        <h3>💱 نرخ تتر به تومان (این را از صرافی خود کپی کنید)</h3>
+        <div class="rate-input-row">
+            <input type="number" id="tetherInput" value="128000" step="any">
+            <button onclick="applyTether()">✅ اعمال</button>
+            <button onclick="fetchTetherFromNobitex()" style="background:linear-gradient(135deg,#10b981,#059669);">🔄 دریافت خودکار</button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('convert', this)">🔄 تبدیل</button>
+        <button class="tab" onclick="switchTab('profit', this)">💰 سود و ضرر</button>
+        <button class="tab" onclick="switchTab('prices', this)">📈 قیمت‌ها</button>
+    </div>
+
+    <!-- Tab 1: Convert -->
+    <div class="tab-content active" id="tab-convert">
+        <div class="card">
+            <div class="card-title">🔄 تبدیل رمزارز به تومان</div>
+            <div class="crypto-grid" id="cryptoGridConvert"></div>
+            <div class="rate-display">
+                <span class="rate-label">💰 قیمت <span id="convertSymbol">BTC</span>:</span>
+                <span class="rate-value" id="convertPrice">-</span>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>مقدار رمزارز</label>
+                    <div class="input-wrap">
+                        <input type="number" id="cryptoAmount" value="1" step="any" oninput="calculateConvert()">
+                        <span class="unit" id="cryptoUnit">BTC</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>مقدار تومان</label>
+                    <div class="input-wrap">
+                        <input type="number" id="tomanAmount" value="0" step="any" oninput="calculateConvertReverse()">
+                        <span class="unit">تومان</span>
+                    </div>
+                </div>
+            </div>
+            <div class="result-box">
+                <div class="result-label">نتیجه تبدیل</div>
+                <div class="result-value" id="convertResult">- تومان</div>
+                <div class="result-sub" id="convertSub">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Profit -->
+    <div class="tab-content" id="tab-profit">
+        <div class="card">
+            <div class="card-title">💰 محاسبه سود و ضرر با کارمزد</div>
+            <div class="crypto-grid" id="cryptoGridProfit"></div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>قیمت خرید (تومان)</label>
+                    <div class="input-wrap">
+                        <input type="number" id="buyPrice" step="any" oninput="calculateProfit()">
+                        <span class="unit">تومان</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>قیمت فروش (تومان)</label>
+                    <div class="input-wrap">
+                        <input type="number" id="sellPrice" step="any" oninput="calculateProfit()">
+                        <span class="unit">تومان</span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>مقدار رمزارز</label>
+                    <div class="input-wrap">
+                        <input type="number" id="profitAmount" value="1" step="any" oninput="calculateProfit()">
+                        <span class="unit" id="profitUnit">BTC</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>کارمزد هر طرف (٪)</label>
+                    <div class="input-wrap">
+                        <input type="number" id="feePercent" value="0.2" step="0.01" oninput="calculateProfit()">
+                        <span class="unit">٪</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" style="width:100%; margin-bottom:16px;" onclick="fillFromLivePrice()">
+                📡 پر کردن قیمت خرید با قیمت لحظه‌ای
+            </button>
+            <div class="result-box">
+                <div class="result-label">سود / ضرر خالص</div>
+                <div class="result-value" id="profitResult">-</div>
+                <div class="result-sub" id="profitPercent">-</div>
+            </div>
+            <div class="result-rows" id="profitDetails"></div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Prices -->
+    <div class="tab-content" id="tab-prices">
+        <div class="card">
+            <div class="card-title">📈 قیمت لحظه‌ای رمزارزها</div>
+            <div class="crypto-grid" id="cryptoGridPrices"></div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         🎁 بخش صرافی‌های پیشنهادی (زیرمجموعه / Referral)
+         ============================================================ -->
+    <div class="referral-section">
+        <div class="referral-head">
+            <h2>🎁 ثبت‌نام در صرافی‌ها با تخفیف کارمزد</h2>
+            <p>با لینک‌های زیر ثبت‌نام کنید و از تخفیف کارمزد معاملات بهره‌مند شوید</p>
+        </div>
+        <div class="referral-grid">
+
+            <!-- RSTN -->
+            <a class="ref-card ref-rstn" href="https://rstn.co/ref/698306" target="_blank" rel="noopener noreferrer">
+                <span class="ref-badge">پیشنهاد ویژه</span>
+                <div class="ref-logo">🚀</div>
+                <div class="ref-name">RSTN</div>
+                <div class="ref-desc">ثبت‌نام با لینک دعوت اختصاصی و دریافت مزایای ویژه</div>
+                <span class="ref-cta">ثبت‌نام در RSTN ←</span>
+            </a>
+
+            <!-- Nobitex -->
+            <a class="ref-card ref-nobitex" href="https://nobitex.ir/signup/?refcode=7480187" target="_blank" rel="noopener noreferrer">
+                <span class="ref-badge">محبوب</span>
+                <div class="ref-banner-wrap">
+                    <img src="https://cdn.nobitex.ir/referral/share-banner-low.gif" alt="Nobitex Referral Campaign Banner" loading="lazy"/>
+                </div>
+                <div class="ref-name">نوبیتکس</div>
+                <div class="ref-desc">بزرگ‌ترین صرافی ایرانی با پشتیبانی ۲۴ ساعته و کارمزد کم</div>
+                <span class="ref-cta">ثبت‌نام در نوبیتکس ←</span>
+            </a>
+
+            <!-- Wallex -->
+            <a class="ref-card ref-wallex" href="https://wallex.ir/signup?ref=9v9z6v76" target="_blank" rel="noopener noreferrer">
+                <span class="ref-badge">۱۲.۵٪ هدیه</span>
+                <div class="ref-logo">💎</div>
+                <div class="ref-name">والکس (Wallex)</div>
+                <div class="ref-desc">با این لینک ثبت‌نام کن و حداقل ۱۲.۵٪ از کارمزد معاملاتت را هدیه بگیر!</div>
+                <span class="ref-cta">ثبت‌نام در والکس ←</span>
+            </a>
+
+        </div>
+    </div>
+
+    <div class="info-box">
+        <strong>💡 نکته:</strong> قیمت‌ها از CoinGecko (به دلار) گرفته می‌شود و در نرخ تتری که وارد می‌کنید ضرب می‌شود. برای فعال شدن، VPN خود را روشن کنید.
+    </div>
+
+    <div class="warning-box">
+        ⚠️ این ابزار آموزشی است. برای معاملات واقعی، همیشه قیمت را از سایت رسمی صرافی خود چک کنید.
+    </div>
+
+    <!-- ============================================================
+         👁️ شمارنده بازدیدکنندگان (مستطیل کوچک پایین صفحه)
+         ============================================================ -->
+    <div class="visitor-wrap">
+        <div class="visitor-box" title="تعداد بازدیدکنندگان این صفحه">
+            <span class="v-dot"></span>
+            <span class="v-icon">👁️</span>
+            <span>بازدیدکنندگان:</span>
+            <strong id="visitorCount">...</strong>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ============================================================
+//  ماشین‌حساب کریپتو با CoinGecko (خارجی)
+// ============================================================
+
+const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+
+// رمزارزها
+const CRYPTOS = [
+    { symbol:'BTC',   name:'بیت‌کوین',    id:'bitcoin',     color:'#f7931a' },
+    { symbol:'ETH',   name:'اتریوم',       id:'ethereum',    color:'#627eea' },
+    { symbol:'BNB',   name:'بایننس‌کوین',  id:'binancecoin', color:'#f3ba2f' },
+    { symbol:'SOL',   name:'سولانا',       id:'solana',      color:'#9945ff' },
+    { symbol:'XRP',   name:'ریپل',         id:'ripple',      color:'#00aae4' },
+    { symbol:'DOGE',  name:'دوج‌کوین',     id:'dogecoin',    color:'#c2a633' },
+    { symbol:'ADA',   name:'کاردانو',      id:'cardano',     color:'#0033ad' },
+    { symbol:'TRX',   name:'ترون',         id:'tron',        color:'#ff060a' },
+    { symbol:'LTC',   name:'لایت‌کوین',    id:'litecoin',    color:'#a6a9aa' },
+    { symbol:'TON',   name:'تون‌کوین',     id:'the-open-network', color:'#0098ea' },
+    { symbol:'FLOKI', name:'فلوکی',        id:'floki',       color:'#f59e0b' },
+    { symbol:'SHIB',  name:'شیبا اینو',    id:'shiba-inu',   color:'#ff0000' }
+];
+
+let cryptoData = {};
+let usdtToToman = 128000;
+let selectedCrypto = 'BTC';
+let dataSource = 'demo';
+
+// ============================================================
+//  ابزارها
+// ============================================================
+function toFa(n) { if (n===null||n===undefined||isNaN(n)) return '-'; return Number(n).toLocaleString('fa-IR'); }
+function formatToman(amount) {
+    if (amount===null||amount===undefined||isNaN(amount)) return '-';
+    return Math.round(amount).toLocaleString('fa-IR') + ' تومان';
+}
+function formatTomanShort(amount) {
+    if (!amount && amount!==0) return '-';
+    if (amount >= 1e9) return (amount/1e9).toFixed(2) + ' میلیارد';
+    if (amount >= 1e6) return (amount/1e6).toFixed(2) + ' میلیون';
+    if (amount >= 1e3) return (amount/1e3).toFixed(2) + ' هزار';
+    return Math.round(amount).toLocaleString('fa-IR');
+}
+function formatUSDT(amount) {
+    if (!amount && amount!==0) return '-';
+    if (amount >= 1000) return amount.toLocaleString('fa-IR', { maximumFractionDigits: 2 });
+    if (amount >= 1) return amount.toFixed(4);
+    if (amount >= 0.01) return amount.toFixed(6);
+    return amount.toFixed(8);
+}
+function formatTime(date) { return date.toLocaleTimeString('fa-IR', { hour:'2-digit', minute:'2-digit' }); }
+
+// ============================================================
+//  دریافت قیمت از CoinGecko
+// ============================================================
+async function fetchFromCoinGecko() {
+    try {
+        const ids = CRYPTOS.map(c => c.id).join(',');
+        const url = `${COINGECKO_API}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        CRYPTOS.forEach(c => {
+            const item = data[c.id];
+            if (item && item.usd) {
+                cryptoData[c.symbol] = {
+                    priceUSDT: item.usd,
+                    changePercent: item.usd_24h_change || 0,
+                    source: 'coingecko'
+                };
+            }
+        });
+
+        if (Object.keys(cryptoData).length > 0) {
+            dataSource = 'coingecko';
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.warn('CoinGecko ناموفق:', e.message);
+        return false;
+    }
+}
+
+// ============================================================
+//  دریافت نرخ تتر از نوبیتکس (برای پر کردن خودکار)
+// ============================================================
+async function fetchTetherFromNobitex() {
+    try {
+        const res = await fetch('https://api.nobitex.ir/market/stats', { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        if (data.stats && data.stats['usdt-rls']) {
+            const rate = parseFloat(data.stats['usdt-rls'].latest) / 10;
+            document.getElementById('tetherInput').value = Math.round(rate);
+            usdtToToman = rate;
+            document.getElementById('tetherRate').textContent = toFa(Math.round(rate));
+            updateUI();
+            return true;
+        }
+        throw new Error('داده یافت نشد');
+    } catch (e) {
+        alert('❌ دریافت خودکار نرخ تتر ناموفق بود.\nلطفاً نرخ را دستی وارد کنید.\n\nخطا: ' + e.message);
+        return false;
+    }
+}
+
+// ============================================================
+//  داده شبیه‌سازی
+// ============================================================
+function loadDemoData() {
+    const demoPrices = {
+        BTC: 95000, ETH: 3300, BNB: 700, SOL: 200, XRP: 2.3,
+        DOGE: 0.35, ADA: 1.0, TRX: 0.25, LTC: 120, TON: 5.5,
+        FLOKI: 0.0002, SHIB: 0.000025
+    };
+    CRYPTOS.forEach(c => {
+        cryptoData[c.symbol] = {
+            priceUSDT: demoPrices[c.symbol] || 1,
+            changePercent: (Math.random() * 6 - 3),
+            source: 'demo'
+        };
+    });
+    dataSource = 'demo';
+}
+
+// ============================================================
+//  نرخ تتر
+// ============================================================
+function applyTether() {
+    const val = parseFloat(document.getElementById('tetherInput').value);
+    if (val > 0) {
+        usdtToToman = val;
+        document.getElementById('tetherRate').textContent = toFa(Math.round(val));
+        updateUI();
+    }
+}
+
+// ============================================================
+//  قیمت به تومان
+// ============================================================
+function priceToToman(symbol) {
+    if (!cryptoData[symbol]) return 0;
+    return cryptoData[symbol].priceUSDT * usdtToToman;
+}
+
+// ============================================================
+//  UI
+// ============================================================
+function updateUI() {
+    const dot = document.getElementById('statusDot');
+    dot.classList.remove('offline');
+
+    let statusText = '';
+    if (dataSource === 'coingecko') {
+        statusText = '✅ متصل به CoinGecko (VPN روشن)';
+    } else if (dataSource === 'demo') {
+        dot.classList.add('offline');
+        statusText = '⚠️ حالت شبیه‌سازی - VPN را روشن کنید';
+    }
+
+    document.getElementById('statusText').textContent = statusText;
+    document.getElementById('tetherRate').textContent = toFa(Math.round(usdtToToman));
+    document.getElementById('lastUpdate').textContent = formatTime(new Date());
+
+    renderCryptoGrids();
+    updateConvertTab();
+    updateProfitTab();
+}
+
+function renderCryptoGrids() {
+    ['cryptoGridConvert', 'cryptoGridProfit', 'cryptoGridPrices'].forEach(gridId => {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        CRYPTOS.forEach(c => {
+            const data = cryptoData[c.symbol];
+            if (!data) return;
+
+            const priceToman = data.priceUSDT * usdtToToman;
+            const change = data.changePercent || 0;
+            const changeClass = change >= 0 ? 'val-green' : 'val-red';
+            const changeSign = change >= 0 ? '+' : '';
+
+            const card = document.createElement('div');
+            card.className = `crypto-card ${selectedCrypto === c.symbol ? 'selected' : ''}`;
+            card.onclick = () => selectCrypto(c.symbol);
+            card.innerHTML = `
+                <div class="c-symbol">${c.symbol}</div>
+                <div class="c-name">${c.name}</div>
+                <div class="c-price">${formatTomanShort(priceToman)}</div>
+                <div class="c-change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
+            `;
+            grid.appendChild(card);
+        });
+    });
+}
+
+function selectCrypto(symbol) {
+    selectedCrypto = symbol;
+    renderCryptoGrids();
+    updateConvertTab();
+    updateProfitTab();
+}
+
+// ============================================================
+//  تبدیل
+// ============================================================
+function updateConvertTab() {
+    const c = CRYPTOS.find(x => x.symbol === selectedCrypto);
+    if (!c) return;
+    const price = priceToToman(selectedCrypto);
+    document.getElementById('convertSymbol').textContent = c.symbol;
+    document.getElementById('convertPrice').textContent = formatToman(price);
+    document.getElementById('cryptoUnit').textContent = c.symbol;
+    calculateConvert();
+}
+
+function calculateConvert() {
+    const amount = parseFloat(document.getElementById('cryptoAmount').value) || 0;
+    const price = priceToToman(selectedCrypto);
+    const total = amount * price;
+    document.getElementById('tomanAmount').value = Math.round(total);
+    document.getElementById('convertResult').textContent = formatToman(total);
+    document.getElementById('convertSub').textContent =
+        `${toFa(amount)} ${selectedCrypto} × ${formatToman(price)}`;
+}
+
+function calculateConvertReverse() {
+    const toman = parseFloat(document.getElementById('tomanAmount').value) || 0;
+    const price = priceToToman(selectedCrypto);
+    if (price > 0) {
+        document.getElementById('cryptoAmount').value = (toman / price).toFixed(8);
+    }
+    document.getElementById('convertResult').textContent = formatToman(toman);
+    document.getElementById('convertSub').textContent = `معادل ${formatUSDT(toman / usdtToToman)} تتر`;
+}
+
+// ============================================================
+//  سود و ضرر
+// ============================================================
+function updateProfitTab() {
+    const c = CRYPTOS.find(x => x.symbol === selectedCrypto);
+    if (c) document.getElementById('profitUnit').textContent = c.symbol;
+    calculateProfit();
+}
+
+function fillFromLivePrice() {
+    const price = priceToToman(selectedCrypto);
+    if (price > 0) {
+        document.getElementById('buyPrice').value = Math.round(price);
+        calculateProfit();
+    }
+}
+
+function calculateProfit() {
+    const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+    const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+    const amount = parseFloat(document.getElementById('profitAmount').value) || 0;
+    const feePercent = parseFloat(document.getElementById('feePercent').value) || 0;
+
+    if (buyPrice <= 0 || sellPrice <= 0 || amount <= 0) {
+        document.getElementById('profitResult').textContent = '-';
+        document.getElementById('profitPercent').textContent = '-';
+        document.getElementById('profitDetails').innerHTML = '';
+        return;
+    }
+
+    const buyTotal = buyPrice * amount;
+    const sellTotal = sellPrice * amount;
+    const buyFee = buyTotal * (feePercent / 100);
+    const sellFee = sellTotal * (feePercent / 100);
+    const totalFee = buyFee + sellFee;
+    const grossProfit = sellTotal - buyTotal;
+    const netProfit = grossProfit - totalFee;
+    const netPercent = (netProfit / buyTotal) * 100;
+    const isProfit = netProfit >= 0;
+
+    const resEl = document.getElementById('profitResult');
+    resEl.textContent = (isProfit ? '+' : '') + formatToman(netProfit);
+    resEl.style.color = isProfit ? 'var(--green)' : 'var(--red)';
+
+    document.getElementById('profitPercent').textContent =
+        (isProfit ? 'سود' : 'ضرر') + ' ' + Math.abs(netPercent).toFixed(2) + '٪';
+    document.getElementById('profitPercent').style.color = isProfit ? 'var(--green)' : 'var(--red)';
+
+    document.getElementById('profitDetails').innerHTML = `
+        <div class="result-row"><span class="lbl">ارزش خرید</span><span class="val">${formatToman(buyTotal)}</span></div>
+        <div class="result-row"><span class="lbl">ارزش فروش</span><span class="val">${formatToman(sellTotal)}</span></div>
+        <div class="result-row"><span class="lbl">سود/ضرر ناخالص</span><span class="val ${grossProfit>=0?'val-green':'val-red'}">${(grossProfit>=0?'+':'')+formatToman(grossProfit)}</span></div>
+        <div class="result-row"><span class="lbl">کارمزد خرید (${toFa(feePercent)}٪)</span><span class="val val-red">${formatToman(buyFee)}</span></div>
+        <div class="result-row"><span class="lbl">کارمزد فروش (${toFa(feePercent)}٪)</span><span class="val val-red">${formatToman(sellFee)}</span></div>
+        <div class="result-row"><span class="lbl">کارمزد کل</span><span class="val val-red">${formatToman(totalFee)}</span></div>
+        <div class="result-row" style="background:linear-gradient(135deg,rgba(245,158,11,.1),transparent);border:1px solid var(--accent);">
+            <span class="lbl" style="color:var(--accent);">سود/ضرر خالص</span>
+            <span class="val ${isProfit?'val-green':'val-red'}">${(isProfit?'+':'')+formatToman(netProfit)}</span>
+        </div>
+    `;
+}
+
+// ============================================================
+//  Tab
+// ============================================================
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ============================================================
+//  👁️ شمارنده بازدیدکنندگان
+// ============================================================
+async function loadVisitorCount() {
+    const el = document.getElementById('visitorCount');
+    if (!el) return;
+
+    // کلید یکتا — اگر خواستید می‌توانید تغییر دهید
+    const NAMESPACE = 'crypto-toman-calculator';
+    const KEY = 'main-page';
+
+    try {
+        // counterapi.dev — API رایگان شمارنده بازدید
+        const res = await fetch(
+            `https://api.counterapi.dev/v1/${NAMESPACE}/${KEY}/up`,
+            { signal: AbortSignal.timeout(8000) }
+        );
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const count = data.count ?? data.value ?? 0;
+
+        el.textContent = Number(count).toLocaleString('fa-IR');
+        // ذخیره به عنوان fallback
+        try { localStorage.setItem('visitor_last_known', String(count)); } catch(_) {}
+    } catch (e) {
+        // fallback: اگر API در دسترس نبود، حداقل شماره محلی را نشان بده
+        let fallback = 0;
+        try {
+            const stored = localStorage.getItem('visitor_last_known');
+            if (stored) fallback = parseInt(stored, 10) || 0;
+            // شمارش بازدیدهای محلی این مرورگر
+            let localVisits = parseInt(localStorage.getItem('visitor_local_visits') || '0', 10) + 1;
+            localStorage.setItem('visitor_local_visits', String(localVisits));
+            if (localVisits > fallback) fallback = localVisits;
+        } catch(_) {}
+        el.textContent = fallback ? Number(fallback).toLocaleString('fa-IR') : '—';
+    }
+}
+
+// ============================================================
+//  راه‌اندازی
+// ============================================================
+async function init() {
+    loadDemoData();
+    updateUI();
+
+    // شمارنده بازدید
+    loadVisitorCount();
+
+    const ok = await fetchFromCoinGecko();
+    updateUI();
+
+    // تلاش برای دریافت خودکار نرخ تتر
+    if (ok) {
+        try { await fetchTetherFromNobitex(); } catch(e) { /* ignore */ }
+    }
+
+    // به‌روزرسانی هر ۹۰ ثانیه
+    setInterval(async () => {
+        await fetchFromCoinGecko();
+        updateUI();
+    }, 90000);
+}
+
+init();
+</script>
+</body>
+</html>
